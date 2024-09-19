@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="box"> 
+        <div class="form">
+            <h2>Form</h2>
+            <form id="userForm">
+                <div class="inputbox">
+                    <input type="text" value="" id="username" required>
+                    <span>Username</span>
+                </div>
+                <div class="inputbox">
+                    <input type="email" value="" id="email" required>
+                    <span>E-mail</span>
+                </div>
+                <div class="inputbox">
+                    <input type="text" value="" id="phone" required>
+                    <span>Phone Number</span>
+                </div>
+                <input type="submit" value="Submit" class="sub" id="submit">
+            </form>
+            <button id="downloadBtn">Download Data</button>
+        </div>
+    </div>
+
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import { getDatabase, ref, set, get, push } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAkJDVPrQBhJ5FDrjD5CqbottyzvNlZJOE",
+        authDomain: "project-5495e.firebaseapp.com",
+        databaseURL: "https://project-5495e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "project-5495e",
+        storageBucket: "project-5495e.appspot.com",
+        messagingSenderId: "959505404504",
+        appId: "1:959505404504:web:f7b196bdde129615a8302d",
+        measurementId: "G-S9QH8X3QRD"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // User Data Submission
+    document.getElementById("submit").addEventListener('click', function(e) {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const email = document.getElementById("email").value;
+        const phoneNumber = document.getElementById("phone").value;
+
+        set(ref(db, 'user/' + username), {
+            username: username,
+            email: email,
+            PhoneNumber: phoneNumber
+        }).then(() => {
+            alert("Login Successful!");
+        }).catch((error) => {
+            console.error('Error adding user data:', error);
+            alert('Failed to save user data.');
+        });
+    });
+
+    // Download User Data as Excel
+    document.getElementById("downloadBtn").addEventListener('click', function() {
+        const userRef = ref(db, 'user/');
+        get(userRef).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const rows = Object.values(data).map(item => ({
+                    Username: item.username,
+                    Email: item.email,
+                    PhoneNumber: item.PhoneNumber
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "UserData");
+
+                // Generate Excel file and trigger the download
+                XLSX.writeFile(wb, 'User_Data.xlsx');
+            } else {
+                alert('No user data available to download.');
+            }
+        }).catch((error) => {
+            console.error('Error fetching user data: ', error.message);
+            alert('Failed to download user data: ' + error.message);
+        });
+    });
+
+    // Character Data Submission
+    document.getElementById('accountForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const characterData = {
+            character: document.getElementById('Character').value,
+            named: document.getElementById('Named').value,
+            quality: document.getElementById('Quality').value,
+            element: document.getElementById('Element').value,
+            weapon: document.getElementById('Weapon').value,
+            region: document.getElementById('Region').value
+        };
+
+        const charactersRef = ref(db, 'characters/');
+        const newCharacterRef = push(charactersRef);
+
+        set(newCharacterRef, characterData)
+            .then(() => {
+                alert('Character data saved successfully!');
+                document.getElementById('accountForm').reset();
+            })
+            .catch((error) => {
+                console.error('Error saving character data: ', error);
+                alert('Failed to save character data.');
+            });
+    });
+
+    // Download Character Data
+    document.getElementById('download').addEventListener('click', () => {
+        const dbRef = ref(db, 'characters/');
+
+        get(dbRef).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                downloadExcel('characters-data.xlsx', data);
+            } else {
+                alert('No character data available for download');
+            }
+        }).catch((error) => {
+            console.error('Error fetching character data: ', error.message);
+            alert('Failed to fetch character data: ' + error.message);
+        });
+    });
+
+    function downloadExcel(filename, data) {
+        const rows = Object.values(data).map(item => ({
+            Character: item.character,
+            Named: item.named,
+            Quality: item.quality,
+            Element: item.element,
+            Weapon: item.weapon,
+            Region: item.region
+        }));
+
+        // Ensure XLSX is defined
+        if (typeof XLSX === 'undefined') {
+            console.error('XLSX library is not loaded');
+            alert('Failed to load Excel library.');
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Characters");
+
+        // Write the file to the user's system
+        XLSX.writeFile(workbook, filename);
+    }
+</script>
+
+</body>
+</html>
